@@ -1,0 +1,27 @@
+[
+  {
+    "estimate": "1.892",
+    "query": "SELECT s_name,\n       count(*) AS numwait\nFROM supplier,\n     lineitem l1,\n     orders,\n     nation\nWHERE s_suppkey = l1.l_suppkey\n  AND o_orderkey = l1.l_orderkey\n  AND o_orderstatus = 'F'\n  AND l1.l_receiptdate > l1.l_commitdate\n  AND EXISTS\n    (SELECT *\n     FROM lineitem l2\n     WHERE l2.l_orderkey = l1.l_orderkey\n       AND l2.l_suppkey <> l1.l_suppkey )\n  AND NOT EXISTS\n    (SELECT *\n     FROM lineitem l3\n     WHERE l3.l_orderkey = l1.l_orderkey\n       AND l3.l_suppkey <> l1.l_suppkey\n       AND l3.l_receiptdate > l3.l_commitdate )\n  AND s_nationkey = n_nationkey\n  AND n_name = 'SAUDI ARABIA'\nGROUP BY s_name\nORDER BY numwait DESC,\n         s_name\nLIMIT 100\n;\n",
+    "real": 5.907
+  },
+  {
+    "estimate": "1.678",
+    "query": "SELECT o_year,\n       sum(CASE\n               WHEN nation = 'BRAZIL' THEN volume\n               ELSE 0\n           END) / sum(volume) AS mkt_share\nFROM\n  (SELECT strftime('%Y', o_orderdate) AS o_year,\n          l_extendedprice * (1 - l_discount) AS volume,\n          n2.n_name AS nation\n   FROM part,\n        supplier,\n        lineitem,\n        orders,\n        customer,\n        nation n1,\n        nation n2,\n        region\n   WHERE p_partkey = l_partkey\n     AND s_suppkey = l_suppkey\n     AND l_orderkey = o_orderkey\n     AND o_custkey = c_custkey\n     AND c_nationkey = n1.n_nationkey\n     AND n1.n_regionkey = r_regionkey\n     AND r_name = 'AMERICA'\n     AND s_nationkey = n2.n_nationkey\n     AND o_orderdate BETWEEN '1995-01-01' AND '1996-12-31'\n     AND p_type = 'ECONOMY ANODIZED STEEL' ) AS all_nations\nGROUP BY o_year\nORDER BY o_year\n;\n",
+    "real": 4.989
+  },
+  {
+    "estimate": "3.721",
+    "query": "SELECT nation,\n       o_year,\n       sum(amount) AS sum_profit\nFROM\n  (SELECT n_name AS nation,\n          strftime('%Y', o_orderdate) AS o_year,\n          l_extendedprice * (1 - l_discount) - ps_supplycost * l_quantity AS amount\n   FROM part,\n        supplier,\n        lineitem,\n        partsupp,\n        orders,\n        nation\n   WHERE s_suppkey = l_suppkey\n     AND ps_suppkey = l_suppkey\n     AND ps_partkey = l_partkey\n     AND p_partkey = l_partkey\n     AND o_orderkey = l_orderkey\n     AND s_nationkey = n_nationkey\n     AND p_name like '%green%' ) AS profit\nGROUP BY nation,\n         o_year\nORDER BY nation,\n         o_year DESC ;\n",
+    "real": 13.113
+  },
+  {
+    "estimate": "3.872",
+    "query": "SELECT l_returnflag,\n       l_linestatus,\n       sum(l_quantity) AS sum_qty,\n       sum(l_extendedprice) AS sum_base_price,\n       sum(l_extendedprice*(1-l_discount)) AS sum_disc_price,\n       sum(l_extendedprice*(1-l_discount)*(1+l_tax)) AS sum_charge,\n       avg(l_quantity) AS avg_qty,\n       avg(l_extendedprice) AS avg_price,\n       avg(l_discount) AS avg_disc,\n       count(*) AS count_order\nFROM lineitem\nWHERE l_shipdate <= '1998-09-02'  -- date '1998-12-01' - interval '[DELTA=90]' DAY\nGROUP BY l_returnflag,\n         l_linestatus\nORDER BY l_returnflag,\n         l_linestatus;\n",
+    "real": 5.991
+  },
+  {
+    "estimate": "0.982",
+    "query": "SELECT o_orderpriority,\n       count(*) AS order_count\nFROM orders\nWHERE o_orderdate >= '1993-07-01'\n  AND o_orderdate < '1993-10-01'\n  AND EXISTS\n    (SELECT *\n     FROM lineitem\n     WHERE l_orderkey = o_orderkey\n       AND l_commitdate < l_receiptdate )\nGROUP BY o_orderpriority\nORDER BY o_orderpriority\n;\n",
+    "real": 0.366
+  }
+]

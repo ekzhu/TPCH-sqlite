@@ -1,3 +1,6 @@
 [submodule "tpch-dbgen"]
 	path = tpch-dbgen
 	url = https://github.com/lovasoa/tpch-dbgen.git
+[submodule "tpc-queries"]
+	path = tpc-queries
+	url = https://github.com/ibis-project/tpc-queries

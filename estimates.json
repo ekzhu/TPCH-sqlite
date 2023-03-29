@@ -1,0 +1,87 @@
+[
+  {
+    "estimate": "The estimated running time of this query depends on the number of orders that have a sum of line item quantities greater than 300. Without knowing the data distribution, it is difficult to provide an accurate estimate. However, we can make some assumptions based on the table sizes and the query structure.\n\nAssuming that the average number of line items per order is around 4, the number of orders with a sum of line item quantities greater than 300 is likely to be relatively small compared to the total number of orders. Let's assume that there are around 10,000 such orders.\n\nThe query involves joining the `customer`, `orders`, and `lineitem` tables, and grouping the results by several columns. The `lineitem` table has the largest number of rows (6,001,215), followed by the `orders` table (1,500,000) and the `customer` table (150,000). However, the query only selects a subset of orders based on a condition on the `lineitem` table, so the number of rows involved in the join is likely to be much smaller.\n\nBased on these assumptions, we can estimate that the query should take less than a minute to run on a modern computer with a decent amount of memory. However, the actual running time may vary depending on the specific hardware and software configuration, as well as the data distribution and query workload.",
+    "query": "SELECT c_name,\n       c_custkey,\n       o_orderkey,\n       o_orderdate,\n       o_totalprice,\n       sum(l_quantity) AS sum_qty\nFROM customer,\n     orders,\n     lineitem\nWHERE o_orderkey in\n    (SELECT l_orderkey\n     FROM lineitem\n     GROUP BY l_orderkey\n     HAVING sum(l_quantity) > 300)\n  AND c_custkey = o_custkey\n  AND o_orderkey = l_orderkey\nGROUP BY c_name,\n         c_custkey,\n         o_orderkey,\n         o_orderdate,\n         o_totalprice\nORDER BY o_totalprice DESC,\n         o_orderdate\nLIMIT 100\n;\n",
+    "real": 0.846
+  },
+  {
+    "estimate": "5.321",
+    "query": "SELECT nation,\n       o_year,\n       sum(amount) AS sum_profit\nFROM\n  (SELECT n_name AS nation,\n          strftime('%Y', o_orderdate) AS o_year,\n          l_extendedprice * (1 - l_discount) - ps_supplycost * l_quantity AS amount\n   FROM part,\n        supplier,\n        lineitem,\n        partsupp,\n        orders,\n        nation\n   WHERE s_suppkey = l_suppkey\n     AND ps_suppkey = l_suppkey\n     AND ps_partkey = l_partkey\n     AND p_partkey = l_partkey\n     AND o_orderkey = l_orderkey\n     AND s_nationkey = n_nationkey\n     AND p_name like '%green%' ) AS profit\nGROUP BY nation,\n         o_year\nORDER BY nation,\n         o_year DESC ;\n",
+    "real": 13.113
+  },
+  {
+    "estimate": "1.234",
+    "query": "SELECT c_custkey,\n       c_name,\n       sum(l_extendedprice * (1 - l_discount)) AS revenue,\n       c_acctbal,\n       n_name,\n       c_address,\n       c_phone,\n       c_comment\nFROM customer,\n     orders,\n     lineitem,\n     nation\nWHERE c_custkey = o_custkey\n  AND l_orderkey = o_orderkey\n  AND o_orderdate >= '1993-10-01'\n  AND o_orderdate < '1994-01-01'\n  AND l_returnflag = 'R'\n  AND c_nationkey = n_nationkey\nGROUP BY c_custkey,\n         c_name,\n         c_acctbal,\n         c_phone,\n         n_name,\n         c_address,\n         c_comment\nORDER BY revenue DESC\nLIMIT 20 ;\n",
+    "real": 1.203
+  },
+  {
+    "estimate": "1.234",
+    "query": "SELECT c_count,\n       count(*) AS custdist\nFROM\n  (SELECT c_custkey,\n          count(o_orderkey) AS c_count\n   FROM customer\n   LEFT OUTER JOIN orders ON c_custkey = o_custkey\n   AND o_comment NOT LIKE '%special%requests%'\n   GROUP BY c_custkey)\nGROUP BY c_count\nORDER BY custdist DESC,\n         c_count DESC\n;\n",
+    "real": 8.553
+  },
+  {
+    "estimate": "0.987",
+    "query": "SELECT o_orderpriority,\n       count(*) AS order_count\nFROM orders\nWHERE o_orderdate >= '1993-07-01'\n  AND o_orderdate < '1993-10-01'\n  AND EXISTS\n    (SELECT *\n     FROM lineitem\n     WHERE l_orderkey = o_orderkey\n       AND l_commitdate < l_receiptdate )\nGROUP BY o_orderpriority\nORDER BY o_orderpriority\n;\n",
+    "real": 0.366
+  },
+  {
+    "estimate": "0.002",
+    "query": "SELECT sum(l_extendedprice * (1 - l_discount)) AS revenue\nFROM lineitem,\n     part\nWHERE (p_partkey = l_partkey\n       AND p_brand = 'Brand#12'\n       AND p_container in ('SM CASE',\n                           'SM BOX',\n                           'SM PACK',\n                           'SM PKG')\n       AND l_quantity >= 1\n       AND l_quantity <= 11\n       AND p_size BETWEEN 1 AND 5\n       AND l_shipmode in ('AIR',\n                          'AIR REG')\n       AND l_shipinstruct = 'DELIVER IN PERSON')\n  OR (p_partkey = l_partkey\n      AND p_brand = 'Brand#23'\n      AND p_container in ('MED BAG',\n                          'MED BOX',\n                          'MED PKG',\n                          'MED PACK')\n      AND l_quantity >= 10\n      AND l_quantity <= 20\n      AND p_size BETWEEN 1 AND 10\n      AND l_shipmode in ('AIR',\n                         'AIR REG')\n      AND l_shipinstruct = 'DELIVER IN PERSON')\n  OR (p_partkey = l_partkey\n      AND p_brand = 'Brand#34'\n      AND p_container in ('LG CASE',\n                          'LG BOX',\n                          'LG PACK',\n                          'LG PKG')\n      AND l_quantity >= 20\n      AND l_quantity <= 30\n      AND p_size BETWEEN 1 AND 15\n      AND l_shipmode in ('AIR',\n                         'AIR REG')\n      AND l_shipinstruct = 'DELIVER IN PERSON')\n;\n",
+    "real": 1.267
+  },
+  {
+    "estimate": "0.238",
+    "query": "SELECT 100.00 * sum(CASE\n                        WHEN p_type like 'PROMO%' THEN l_extendedprice*(1-l_discount)\n                        ELSE 0\n                    END) / sum(l_extendedprice * (1 - l_discount)) AS promo_revenue\nFROM lineitem,\n     part\nWHERE l_partkey = p_partkey\n  AND l_shipdate >= '1995-09-01'\n  AND l_shipdate < '1995-10-01'\n;\n",
+    "real": 1.102
+  },
+  {
+    "estimate": "2.123",
+    "query": "SELECT l_shipmode,\n       sum(CASE\n               WHEN o_orderpriority ='1-URGENT'\n                    OR o_orderpriority ='2-HIGH' THEN 1\n               ELSE 0\n           END) AS high_line_count,\n       sum(CASE\n               WHEN o_orderpriority <> '1-URGENT'\n                    AND o_orderpriority <> '2-HIGH' THEN 1\n               ELSE 0\n           END) AS low_line_count\nFROM orders,\n     lineitem\nWHERE o_orderkey = l_orderkey\n  AND l_shipmode in ('MAIL',\n                     'SHIP')\n  AND l_commitdate < l_receiptdate\n  AND l_shipdate < l_commitdate\n  AND l_receiptdate >= '1994-01-01'\n  AND l_receiptdate < '1995-01-01'\nGROUP BY l_shipmode\nORDER BY l_shipmode\n;\n",
+    "real": 1.012
+  },
+  {
+    "estimate": "The estimated running time of this query depends on the size of the LINEITEM table and the selectivity of the WHERE clause. Assuming that the WHERE clause filters out a significant portion of the table, we can estimate the running time as follows:\n\n- The LINEITEM table has 6,001,215 rows.\n- The query groups by two columns, so it needs to perform a hash aggregation. This involves reading the entire table, sorting it by the grouping columns, and then aggregating the rows that have the same values for the grouping columns. The cost of this operation is proportional to the size of the table.\n- The query computes several aggregate functions (sum, avg, count). These functions need to be applied to each group of rows that have the same values for the grouping columns. The cost of this operation is proportional to the number of groups.\n- The query sorts the result by two columns. This involves reading the entire result set, sorting it by the sort keys, and then writing the sorted result to disk. The cost of this operation is proportional to the size of the result set.\n\nBased on these considerations, we can estimate the running time of the query as follows:\n\n- Reading the LINEITEM table: 6,001,215 * cost per row\n- Hash aggregation: cost per row * number of rows\n- Sorting the result: cost per row * number of rows\n\nThe cost per row depends on the complexity of the expressions in the SELECT clause and the size of the rows. Assuming that the rows are not too wide and the expressions are not too complex, we can estimate the cost per row as 0.1 ms.\n\nBased on this estimate, the running time of the query is approximately:\n\n- Reading the LINEITEM table: 6,001,215 * 0.1 ms = 600.1 s\n- Hash aggregation: 6,001,215 * 0.1 ms = 600.1 s\n- Sorting the result: 6,001,215 * 0.1 ms = 600.1 s\n\nThe total running time is approximately 1800 s (30 minutes). However, this is a rough estimate and the actual running time may be higher or lower depending on the specifics of the system and the workload.",
+    "query": "SELECT l_returnflag,\n       l_linestatus,\n       sum(l_quantity) AS sum_qty,\n       sum(l_extendedprice) AS sum_base_price,\n       sum(l_extendedprice*(1-l_discount)) AS sum_disc_price,\n       sum(l_extendedprice*(1-l_discount)*(1+l_tax)) AS sum_charge,\n       avg(l_quantity) AS avg_qty,\n       avg(l_extendedprice) AS avg_price,\n       avg(l_discount) AS avg_disc,\n       count(*) AS count_order\nFROM lineitem\nWHERE l_shipdate <= '1998-09-02'  -- date '1998-12-01' - interval '[DELTA=90]' DAY\nGROUP BY l_returnflag,\n         l_linestatus\nORDER BY l_returnflag,\n         l_linestatus;\n",
+    "real": 5.991
+  },
+  {
+    "estimate": "1.234",
+    "query": "SELECT ps_partkey,\n       sum(ps_supplycost * ps_availqty) AS value\nFROM partsupp,\n     supplier,\n     nation\nWHERE ps_suppkey = s_suppkey\n  AND s_nationkey = n_nationkey\n  AND n_name = 'GERMANY'\nGROUP BY ps_partkey\nHAVING sum(ps_supplycost * ps_availqty) >\n  (SELECT sum(ps_supplycost * ps_availqty) * .0001 -- FRACTION = .0001/SF\nFROM partsupp,\n     supplier,\n     nation\n   WHERE ps_suppkey = s_suppkey\n     AND s_nationkey = n_nationkey\n     AND n_name = 'GERMANY' )\nORDER BY value DESC\n;\n",
+    "real": 0.617
+  },
+  {
+    "estimate": "1.234",
+    "query": "SELECT s_suppkey,\n       s_name,\n       s_address,\n       s_phone,\n       total_revenue\nFROM supplier,\n\n  (SELECT l_suppkey AS supplier_no,\n          sum(l_extendedprice * (1 - l_discount)) AS total_revenue\n   FROM lineitem\n   WHERE l_shipdate >= '1996-01-01'\n     AND l_shipdate < '1996-04-01'\n   GROUP BY supplier_no) revenue0\nWHERE s_suppkey = supplier_no\n  AND total_revenue =\n    (SELECT max(total_revenue)\n     FROM\n       (SELECT l_suppkey AS supplier_no,\n               sum(l_extendedprice * (1 - l_discount)) AS total_revenue\n        FROM lineitem\n        WHERE l_shipdate >= '1996-01-01'\n          AND l_shipdate < '1996-04-01'\n        GROUP BY supplier_no) revenue1)\nORDER BY s_suppkey\n;\n",
+    "real": 2.054
+  },
+  {
+    "estimate": "5.321",
+    "query": "SELECT s_name,\n       count(*) AS numwait\nFROM supplier,\n     lineitem l1,\n     orders,\n     nation\nWHERE s_suppkey = l1.l_suppkey\n  AND o_orderkey = l1.l_orderkey\n  AND o_orderstatus = 'F'\n  AND l1.l_receiptdate > l1.l_commitdate\n  AND EXISTS\n    (SELECT *\n     FROM lineitem l2\n     WHERE l2.l_orderkey = l1.l_orderkey\n       AND l2.l_suppkey <> l1.l_suppkey )\n  AND NOT EXISTS\n    (SELECT *\n     FROM lineitem l3\n     WHERE l3.l_orderkey = l1.l_orderkey\n       AND l3.l_suppkey <> l1.l_suppkey\n       AND l3.l_receiptdate > l3.l_commitdate )\n  AND s_nationkey = n_nationkey\n  AND n_name = 'SAUDI ARABIA'\nGROUP BY s_name\nORDER BY numwait DESC,\n         s_name\nLIMIT 100\n;\n",
+    "real": 5.907
+  },
+  {
+    "estimate": "1.234",
+    "query": "SELECT n_name,\n       sum(l_extendedprice * (1 - l_discount)) AS revenue\nFROM customer,\n     orders,\n     lineitem,\n     supplier,\n     nation,\n     region\nWHERE c_custkey = o_custkey\n  AND l_orderkey = o_orderkey\n  AND l_suppkey = s_suppkey\n  AND c_nationkey = s_nationkey\n  AND s_nationkey = n_nationkey\n  AND n_regionkey = r_regionkey\n  AND r_name = 'ASIA'\n  AND o_orderdate >= '1994-01-01'\n  AND o_orderdate < '1995-01-01'\nGROUP BY n_name\nORDER BY revenue DESC\n;\n",
+    "real": 2.216
+  },
+  {
+    "estimate": "1.234",
+    "query": "SELECT s_acctbal,\n       s_name,\n       n_name,\n       p_partkey,\n       p_mfgr,\n       s_address,\n       s_phone,\n       s_comment\nFROM part,\n     supplier,\n     partsupp,\n     nation,\n     region\nWHERE p_partkey = ps_partkey\n  AND s_suppkey = ps_suppkey\n  AND p_size = 25 -- [SIZE]\n  AND p_type like '%BRASS' -- '%[TYPE]'\n  AND s_nationkey = n_nationkey\n  AND n_regionkey = r_regionkey\n  AND r_name = 'EUROPE' -- '[REGION]'\n  AND ps_supplycost =\n    (SELECT min(ps_supplycost)\n     FROM partsupp,\n          supplier,\n          nation,\n          region\n     WHERE p_partkey = ps_partkey\n       AND s_suppkey = ps_suppkey\n       AND s_nationkey = n_nationkey\n       AND n_regionkey = r_regionkey\n       AND r_name = 'EUROPE') -- '[REGION]' )\nORDER BY s_acctbal DESC,\n         n_name,\n         s_name,\n         p_partkey\nLIMIT 100\n;\n",
+    "real": 0.298
+  },
+  {
+    "estimate": "0.002",
+    "query": "SELECT sum(l_extendedprice * l_discount) AS revenue\nFROM lineitem\nWHERE l_shipdate >= '1994-01-01'\n  AND l_shipdate < '1995-01-01'\n  AND l_discount BETWEEN 0.05 AND 0.07\n  AND l_quantity < 24\n;\n",
+    "real": 1.014
+  },
+  {
+    "estimate": "1.234",
+    "query": "SELECT p_brand,\n       p_type,\n       p_size,\n       count(DISTINCT ps_suppkey) AS supplier_cnt\nFROM partsupp,\n     part\nWHERE p_partkey = ps_partkey\n  AND p_brand <> 'Brand#45'\n  AND p_type not like 'MEDIUM POLISHED%'\n  AND p_size in (49, 14, 23, 45, 19, 3, 36, 9)\n  AND ps_suppkey not in\n    (SELECT s_suppkey\n     FROM supplier\n     WHERE s_comment like '%Customer%Complaints%' )\nGROUP BY p_brand,\n         p_type,\n         p_size\nORDER BY supplier_cnt DESC,\n         p_brand,\n         p_type,\n         p_size\n;\n",
+    "real": 0.326
+  },
+  {
+    "estimate": "1.234",
+    "query": "SELECT l_orderkey,\n       sum(l_extendedprice * (1 - l_discount)) AS revenue,\n       o_orderdate,\n       o_shippriority\nFROM customer,\n     orders,\n     lineitem\nWHERE c_mktsegment = 'BUILDING'\n  AND c_custkey = o_custkey\n  AND l_orderkey = o_orderkey\n  AND o_orderdate < '1995-03-15'\n  AND l_shipdate > '1995-03-15'\nGROUP BY l_orderkey,\n         o_orderdate,\n         o_shippriority\nORDER BY revenue DESC,\n         o_orderdate\nLIMIT 10\n;\n",
+    "real": 1.434
+  }
+]

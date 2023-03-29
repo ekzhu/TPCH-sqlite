@@ -1,0 +1,7 @@
+[
+  {
+    "estimate": "1.045",
+    "query": "SELECT o_orderpriority,\n       count(*) AS order_count\nFROM orders\nWHERE o_orderdate >= '1993-07-01'\n  AND o_orderdate < '1993-10-01'\n  AND EXISTS\n    (SELECT *\n     FROM lineitem\n     WHERE l_orderkey = o_orderkey\n       AND l_commitdate < l_receiptdate )\nGROUP BY o_orderpriority\nORDER BY o_orderpriority\n;\n",
+    "real": 0.366
+  }
+]
